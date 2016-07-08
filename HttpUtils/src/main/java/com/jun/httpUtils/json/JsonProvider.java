@@ -11,11 +11,11 @@ public interface JsonProvider {
     /**
      * Serialize value to json, and write to writer
      */
-    public void toJson(Writer writer, Object value);
+    void toJson(Writer writer, Object value);
 
     /**
      * Deserialize json from reader
      */
-    public <T> T fromJson(Reader reader, Type type);
+    <T> T fromJson(Reader reader, Type type);
 
 }

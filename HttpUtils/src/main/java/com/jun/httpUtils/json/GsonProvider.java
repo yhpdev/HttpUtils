@@ -11,6 +11,7 @@ import java.lang.reflect.Type;
  * Created by jun on 16/7/6.
  */
 public class GsonProvider implements JsonProvider {
+
     private  Gson gson;
 
     public Gson getGson() {

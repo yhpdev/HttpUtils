@@ -23,16 +23,13 @@ public class Session {
     private HttpRequest request;
     private HttpResponse httpResponse;
     private EntityBuilder entityBuilder;
-    private HttpEntity reqEntity;
     private int httpCode;
     private ResponseUtils repUtils;
     private BasicCookieStore cookies;
-    private HttpConnectionManager httpConnectionManager;
 
     public Session() {
         this.context = HttpClientContext.create();
-        this.httpConnectionManager = new HttpConnectionManager();
-        this.httpClient = httpConnectionManager.getHtpClient();
+        this.httpClient = new HttpConnectionManager().getHtpClient();
         this.cookies = new BasicCookieStore();
         this.context.setCookieStore(cookies);
     }
