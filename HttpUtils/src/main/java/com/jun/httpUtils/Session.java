@@ -76,7 +76,7 @@ public class Session {
     }
 
     public Session initEntityBuilder(EntityBuilder... builder) {
-        if (builder != null && builder[0] != null) {
+        if (builder != null && builder.length>0) {
             this.entityBuilder = builder[0];
         } else if (this.entityBuilder == null) {
             this.entityBuilder = EntityBuilder.create();
