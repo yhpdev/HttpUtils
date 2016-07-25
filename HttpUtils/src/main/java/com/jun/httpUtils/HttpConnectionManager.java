@@ -14,8 +14,9 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.auth.BasicSchemeFactory;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -24,38 +25,46 @@ import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 
+import javax.net.ssl.SSLContext;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
 /**
  * Created by jun on 16/7/2.
+ * 采用Http链接池管理方式创建线程,添加https访问
  */
 public class HttpConnectionManager {
     private static PoolingHttpClientConnectionManager cm;
 
-
-
     static {
-        try{
-            SSLContextBuilder builder = new SSLContextBuilder();
-            builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-                    builder.build());
-            Registry<ConnectionSocketFactory> registry =
-                    RegistryBuilder.<ConnectionSocketFactory> create()
-                            .register("https", sslsf)
-                            .register("http", new PlainConnectionSocketFactory()).build();
-
-            cm= new PoolingHttpClientConnectionManager(registry);
-        }catch (Exception e){
-
+        SSLContext sslContext = null;
+        try {
+            sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustStrategy() {
+                public boolean isTrusted(final X509Certificate[] arg0, final String arg1)
+                        throws CertificateException {
+                    return true;
+                }
+            }).build();
+        } catch (Exception e) {
+            System.out.println(e.getStackTrace());
         }
+        SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext,
+                new NoopHostnameVerifier());
+        Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder
+                .<ConnectionSocketFactory>create()
+                .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                .register("https", sslSocketFactory).build();
+        cm = new PoolingHttpClientConnectionManager(
+                socketFactoryRegistry);
 
-         cm.setMaxTotal(HttpBuilder.MAX_TOTAL_CONNECTIONS);
-         cm.setDefaultMaxPerRoute(HttpBuilder.MAX_ROUTE_CONNECTIONS);
+        cm.setMaxTotal(HttpBuilder.MAX_TOTAL_CONNECTIONS);
+        cm.setDefaultMaxPerRoute(HttpBuilder.MAX_ROUTE_CONNECTIONS);
 
 
-   }
+    }
 
 
-    public  HttpClient getHtpClient(){
+    public static HttpClient getHtpClient() {
 
         RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD_STRICT).build();
         CloseableHttpClient httpClient = HttpClients
@@ -69,22 +78,23 @@ public class HttpConnectionManager {
 
     /**
      * 默认是 Bsic认证机制
+     *
      * @param ip
      * @param username
      * @param password
      * @return
      */
-    public HttpClient getHtpClient(String ip,int port,String username,String password) {
-        HttpHost proxy=new HttpHost(ip,port);
+    public static HttpClient getHtpClient(String ip, int port, String username, String password) {
+        HttpHost proxy = new HttpHost(ip, port);
         Lookup<AuthSchemeProvider> authProviders =
                 RegistryBuilder.<AuthSchemeProvider>create()
                         .register(AuthSchemes.BASIC, new BasicSchemeFactory())
                         .build();
         BasicCredentialsProvider credsProvider = new BasicCredentialsProvider();
-        if(username!=null && password!=null){
+        if (username != null && password != null) {
             credsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
         } else {
-            credsProvider.setCredentials(AuthScope.ANY,null);
+            credsProvider.setCredentials(AuthScope.ANY, null);
         }
 
         RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD_STRICT).build();
@@ -99,8 +109,8 @@ public class HttpConnectionManager {
                 .build();
         return httpClient;
     }
-    public  HttpClient getHtpClient(AuthenticationStrategy proxy){
 
+    public static HttpClient getHtpClient(AuthenticationStrategy proxy) {
         RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD_STRICT).build();
         CloseableHttpClient httpClient = HttpClients
                 .custom()
