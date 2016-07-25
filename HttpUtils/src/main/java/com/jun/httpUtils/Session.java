@@ -88,6 +88,7 @@ public class Session {
     }
 
     public Session uploadFile(File file) {
+        if(this.entityBuilder == null)this.entityBuilder = EntityBuilder.create();
         entityBuilder.setFile(file);
         return this;
     }
